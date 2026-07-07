@@ -1,0 +1,3091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Windows 11 Ultra Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --bg: radial-gradient(circle at top, #1d4ed8 0, #020617 55%, #000 100%);
+    --accent: #2563eb;
+    --accent-soft: rgba(37,99,235,0.25);
+    --glass: rgba(15,23,42,0.8);
+    --glass-light: rgba(15,23,42,0.6);
+    --border: rgba(148,163,184,0.6);
+    --text: #e5e7eb;
+    --text-soft: #9ca3af;
+    --radius: 12px;
+    --shadow: 0 18px 45px rgba(0,0,0,0.55);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body {
+    background: var(--bg);
+    height: 100vh;
+    overflow: hidden;
+    color: var(--text);
+  }
+
+  /* Desktop */
+  #desktop {
+    position: absolute;
+    inset: 0 0 48px 0;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 80px);
+    grid-auto-rows: 90px;
+    gap: 12px;
+    align-content: flex-start;
+    user-select: none;
+  }
+  .desktop-icon {
+    width: 80px;
+    text-align: center;
+    color: var(--text-soft);
+    cursor: pointer;
+  }
+  .desktop-icon .icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 4px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1d4ed8, #22c55e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: 0.15s;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+  }
+  .desktop-icon span {
+    font-size: 11px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  }
+  .desktop-icon:hover .icon {
+    transform: scale(1.05);
+    background: rgba(15,23,42,0.7);
+  }
+  .desktop-icon.selected .icon {
+    outline: 2px solid var(--accent);
+  }
+
+  /* Taskbar */
+  #taskbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 48px;
+    background: linear-gradient(to top, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
+    border-top: 1px solid rgba(148,163,184,0.4);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    backdrop-filter: blur(18px);
+  }
+  #start-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: radial-gradient(circle at 30% 30%, #22c55e, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.6);
+  }
+  #start-button span {
+    font-weight: 700;
+    font-size: 18px;
+  }
+  #taskbar-apps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .taskbar-item {
+    min-width: 32px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(15,23,42,0.7);
+    border: 1px solid rgba(148,163,184,0.4);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .taskbar-item.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  #taskbar-clock {
+    font-size: 11px;
+    color: var(--text-soft);
+    text-align: right;
+    min-width: 90px;
+  }
+
+  /* Start menu */
+  #start-menu {
+    position: absolute;
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 460px;
+    max-width: calc(100% - 24px);
+    background: var(--glass);
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 14px 14px 10px;
+    display: none;
+    backdrop-filter: blur(22px);
+  }
+  #start-menu-search {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.5);
+    background: rgba(15,23,42,0.8);
+    color: var(--text);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  #start-menu h2 {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: var(--text-soft);
+  }
+  #start-menu-pinned, #start-menu-all {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0,1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .start-app {
+    padding: 6px 4px;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+  .start-app:hover {
+    background: rgba(15,23,42,0.8);
+  }
+  .start-app-icon {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 3px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #22c55e, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  #start-menu-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+  #power-menu button {
+    margin-left: 4px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.5);
+    background: rgba(15,23,42,0.9);
+    color: var(--text-soft);
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  /* Windows */
+  .window {
+    position: absolute;
+    min-width: 260px;
+    min-height: 180px;
+    background: var(--glass-light);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(18px);
+  }
+  .window-header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    background: linear-gradient(to right, rgba(15,23,42,0.95), rgba(15,23,42,0.7));
+    cursor: move;
+  }
+  .window-title {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+  .window-controls {
+    display: flex;
+    gap: 4px;
+  }
+  .window-btn {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15,23,42,0.9);
+    color: var(--text-soft);
+  }
+  .window-btn.close {
+    background: #ef4444;
+    color: #fee2e2;
+  }
+  .window-btn.max {
+    background: #22c55e;
+    color: #dcfce7;
+  }
+  .window-btn.min {
+    background: #eab308;
+    color: #fef9c3;
+  }
+  .window-content {
+    flex: 1;
+    padding: 8px;
+    font-size: 12px;
+    overflow: auto;
+  }
+  .window.active {
+    border-color: var(--accent);
+  }
+  .window-resizer {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 14px;
+    height: 14px;
+    cursor: se-resize;
+  }
+
+  /* Generic UI */
+  .field { margin-bottom: 6px; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 2px;
+    color: var(--text-soft);
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.5);
+    background: rgba(15,23,42,0.8);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .btn {
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: rgba(15,23,42,0.9);
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .btn.primary {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .flex { display: flex; gap: 6px; align-items: center; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .small-text { font-size: 11px; color: var(--text-soft); }
+
+  .todo-item {
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.4);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .todo-item span.done {
+    text-decoration: line-through;
+    color: var(--text-soft);
+  }
+  canvas.paint {
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: #020617;
+    cursor: crosshair;
+  }
+  .grid-ttt {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .grid-ttt button {
+    height: 40px;
+    font-size: 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: rgba(15,23,42,0.9);
+    color: var(--text);
+    cursor: pointer;
+  }
+  iframe.app-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+    background: #020617;
+  }
+  .explorer-list {
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,0.6);
+    padding: 4px;
+    max-height: 150px;
+    overflow: auto;
+    background: rgba(15,23,42,0.8);
+  }
+  .explorer-item {
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+  }
+  .explorer-item:hover {
+    background: rgba(37,99,235,0.2);
+  }
+
+  /* Sticky notes */
+  .sticky-note {
+    position: absolute;
+    width: 160px;
+    min-height: 120px;
+    background: #facc15;
+    color: #111827;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    cursor: move;
+    font-size: 12px;
+  }
+  .sticky-note textarea {
+    width: 100%;
+    height: 80px;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-size: 12px;
+    color: inherit;
+  }
+  .sticky-note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+  .sticky-note button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+  }
+
+  /* Terminal */
+  .terminal {
+    background: #020617;
+    color: #e5e7eb;
+    font-family: "Consolas", "Fira Code", monospace;
+    font-size: 12px;
+    border-radius: 8px;
+    padding: 6px;
+    height: 180px;
+    overflow: auto;
+  }
+  .terminal-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+  }
+
+  /* Media player */
+  .media-list {
+    max-height: 120px;
+    overflow: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(148,163,184,0.6);
+    padding: 4px;
+  }
+  .media-item {
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .media-item:hover {
+    background: rgba(37,99,235,0.2);
+  }
+
+  /* NEW APP STYLES */
+  .weather-card {
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(15,23,42,0.8);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .weather-temp { font-size: 28px; font-weight: bold; }
+  .unit-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin: 4px 0;
+  }
+  .pass-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+  .bmi-display {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(15,23,42,0.8);
+    margin-top: 8px;
+  }
+  .quiz-option {
+    padding: 6px;
+    border-radius: 6px;
+    background: rgba(15,23,42,0.8);
+    margin: 4px 0;
+    cursor: pointer;
+    text-align: left;
+  }
+  .quiz-option:hover { background: rgba(37,99,235,0.3); }
+  .quiz-option.correct { background: rgba(34,197,94,0.3); }
+  .quiz-option.wrong { background: rgba(239,68,68,0.3); }
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .memory-card {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: rgba(15,23,42,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+  }
+  .budget-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin: 2px 0;
+  }
+  .expense-row { background: rgba(239,68,68,0.2); }
+  .income-row { background: rgba(34,197,94,0.2); }
+  .habit-item {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 6px;
+    margin: 2px 0;
+  }
+  .habit-streak {
+    display: inline-block;
+    min-width: 20px;
+    margin-left: 4px;
+  }
+  .converter-group {
+    padding: 6px;
+    border-radius: 6px;
+    background: rgba(15,23,42,0.8);
+    margin: 4px 0;
+  }
+  .pomodoro-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 8px solid var(--accent);
+    margin: 10px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .tip-summary {
+    padding: 8px;
+    border-radius: 6px;
+    background: rgba(15,23,42,0.8);
+    margin-top: 6px;
+  }
+  .result-display {
+    text-align: center;
+    font-size: 32px;
+    font-weight: bold;
+    padding: 12px;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+<div id="desktop"></div>
+
+<div id="start-menu">
+  <input id="start-menu-search" type="text" placeholder="Search apps…" />
+  <h2>Pinned</h2>
+  <div id="start-menu-pinned"></div>
+  <h2>All apps</h2>
+  <div id="start-menu-all"></div>
+  <div id="start-menu-footer">
+    <span>Windows 11 Ultra (sim)</span>
+    <div id="power-menu">
+      <button data-power="sleep">Sleep</button>
+      <button data-power="restart">Restart</button>
+      <button data-power="shutdown">Shutdown</button>
+    </div>
+  </div>
+</div>
+
+<div id="taskbar">
+  <div id="start-button" title="Start">
+    <span>⊞</span>
+  </div>
+  <div id="taskbar-apps"></div>
+  <div id="taskbar-clock"></div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // --- App registry ---
+  const apps = [
+    { id: 'explorer', name: 'File Explorer', icon: '📁', pinned: true },
+    { id: 'browser', name: 'Mini Browser', icon: '🌐', pinned: true },
+    { id: 'notes', name: 'Notepad', icon: '📝', pinned: true },
+    { id: 'todo', name: 'To-Do', icon: '✅', pinned: true },
+    { id: 'calc', name: 'Calculator', icon: '🧮', pinned: true },
+    { id: 'paint', name: 'Paint', icon: '🖌️', pinned: false },
+    { id: 'photos', name: 'Photos', icon: '🖼️', pinned: false },
+    { id: 'clock', name: 'Clock', icon: '🕒', pinned: false },
+    { id: 'timer', name: 'Timer', icon: '⏲️', pinned: false },
+    { id: 'stopwatch', name: 'Stopwatch', icon: '⏱️', pinned: false },
+    { id: 'calendar', name: 'Calendar', icon: '📅', pinned: false },
+    { id: 'color', name: 'Color Picker', icon: '🎨', pinned: false },
+    { id: 'editor', name: 'Text Editor', icon: '✒️', pinned: false },
+    { id: 'md', name: 'Markdown', icon: '📄', pinned: false },
+    { id: 'ttt', name: 'Tic-Tac-Toe', icon: '❌', pinned: false },
+    { id: 'random', name: 'Randomizer', icon: '🎲', pinned: false },
+    { id: 'fileview', name: 'File Viewer', icon: '📂', pinned: false },
+    { id: 'apploader', name: 'App Loader', icon: '⬇️', pinned: true },
+    { id: 'settings', name: 'Settings', icon: '⚙️', pinned: true },
+    { id: 'about', name: 'About System', icon: '💻', pinned: false },
+    { id: 'terminal', name: 'Terminal', icon: '⌨️', pinned: true },
+    { id: 'media', name: 'Media Player', icon: '🎧', pinned: false },
+    { id: 'sticky', name: 'Sticky Notes', icon: '🗒️', pinned: false },
+
+    // NEW APPS ADDED (15+)
+    { id: 'weather', name: 'Weather', icon: '🌤️', pinned: false },
+    { id: 'uniter', name: 'Unit Converter', icon: '↔️', pinned: false },
+    { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', pinned: false },
+    { id: 'passwordgen', name: 'Password Gen', icon: '🔐', pinned: false },
+    { id: 'bmicalc', name: 'BMI Calculator', icon: '📊', pinned: false },
+    { id: 'tipcalc', name: 'Tip Calculator', icon: '💵', pinned: false },
+    { id: 'agecalc', name: 'Age Calculator', icon: '🎂', pinned: false },
+    { id: 'quiz', name: 'Quiz', icon: '🧠', pinned: false },
+    { id: 'memorygame', name: 'Memory', icon: '🃏', pinned: false },
+    { id: 'hexbin', name: 'Base Converter', icon: '🔢', pinned: false },
+    { id: 'loremipsum', name: 'Lorem Ipsum', icon: '📜', pinned: false },
+    { id: 'caseswitch', name: 'Case Switcher', icon: 'Aa', pinned: false },
+    { id: 'stopwatchpro', name: 'Stopwatch Pro', icon: '⏱️+', pinned: false },
+    { id: 'expensesplit', name: 'Split Bill', icon: '➗', pinned: false },
+    { id: 'habittracker', name: 'Habits', icon: '⭐', pinned: false },
+    { id: 'jsonfmt', name: 'JSON Formatter', icon: '{}', pinned: false }
+  ];
+
+  const desktop = document.getElementById('desktop');
+  const startMenu = document.getElementById('start-menu');
+  const startButton = document.getElementById('start-button');
+  const startMenuPinned = document.getElementById('start-menu-pinned');
+  const startMenuAll = document.getElementById('start-menu-all');
+  const startMenuSearch = document.getElementById('start-menu-search');
+  const taskbarApps = document.getElementById('taskbar-apps');
+  const taskbarClock = document.getElementById('taskbar-clock');
+
+  let zIndexCounter = 10;
+  const windows = new Map();
+  const taskItems = new Map();
+
+  // --- Clock ---
+  function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const date = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    taskbarClock.textContent = time + '  ' + date;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // --- Start menu ---
+  function toggleStartMenu(force) {
+    const visible = startMenu.style.display === 'block';
+    const next = typeof force === 'boolean' ? force : !visible;
+    startMenu.style.display = next ? 'block' : 'none';
+  }
+  startButton.addEventListener('click', () => toggleStartMenu());
+
+  function renderStartMenu(filter = '') {
+    startMenuPinned.innerHTML = '';
+    startMenuAll.innerHTML = '';
+    const q = filter.toLowerCase();
+    apps.forEach(app => {
+      if (!app.name.toLowerCase().includes(q)) return;
+      const node = document.createElement('div');
+      node.className = 'start-app';
+      node.dataset.appId = app.id;
+      node.innerHTML = `
+        <div class="start-app-icon">${app.icon}</div>
+        <div>${app.name}</div>
+      `;
+      node.addEventListener('click', () => {
+        openApp(app.id);
+        toggleStartMenu(false);
+      });
+      if (app.pinned) startMenuPinned.appendChild(node);
+      const node2 = node.cloneNode(true);
+      node2.addEventListener('click', () => {
+        openApp(app.id);
+        toggleStartMenu(false);
+      });
+      startMenuAll.appendChild(node2);
+    });
+  }
+  startMenuSearch.addEventListener('input', e => renderStartMenu(e.target.value));
+  renderStartMenu();
+
+  // Power menu (simulated)
+  document.getElementById('power-menu').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const mode = btn.dataset.power;
+    if (mode === 'sleep') {
+      alert('Simulated: System going to sleep.');
+    } else if (mode === 'restart') {
+      alert('Simulated: Restarting shell.');
+      location.reload();
+    } else if (mode === 'shutdown') {
+      alert('Simulated: Shutdown. Closing all windows.');
+      document.querySelectorAll('.window').forEach(w => w.remove());
+      windows.clear();
+      taskbarApps.innerHTML = '';
+      taskItems.clear();
+    }
+  });
+
+  // --- Desktop icons ---
+  function renderDesktop() {
+    desktop.innerHTML = '';
+    apps.forEach(app => {
+      const div = document.createElement('div');
+      div.className = 'desktop-icon';
+      div.dataset.appId = app.id;
+      div.innerHTML = `
+        <div class="icon">${app.icon}</div>
+        <span>${app.name}</span>
+      `;
+      div.addEventListener('dblclick', () => openApp(app.id));
+      desktop.appendChild(div);
+    });
+  }
+  renderDesktop();
+
+  // --- Window manager ---
+  function createWindow(appId, title) {
+    const win = document.createElement('div');
+    win.className = 'window';
+    win.dataset.appId = appId;
+    win.style.left = (80 + Math.random() * 140) + 'px';
+    win.style.top = (70 + Math.random() * 90) + 'px';
+    win.style.width = '460px';
+    win.style.height = '300px';
+    win.style.zIndex = ++zIndexCounter;
+
+    win.innerHTML = `
+      <div class="window-header">
+        <div class="window-title">${title}</div>
+        <div class="window-controls">
+          <button class="window-btn min" title="Minimize">–</button>
+          <button class="window-btn max" title="Maximize">□</button>
+          <button class="window-btn close" title="Close">×</button>
+        </div>
+      </div>
+      <div class="window-content"></div>
+      <div class="window-resizer"></div>
+    `;
+    document.body.appendChild(win);
+
+    // Dragging
+    const header = win.querySelector('.window-header');
+    let dragging = false, offsetX = 0, offsetY = 0;
+    header.addEventListener('mousedown', e => {
+      dragging = true;
+      const rect = win.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      focusWindow(win);
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      win.style.left = (e.clientX - offsetX) + 'px';
+      win.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mouseup', () => dragging = false);
+
+    // Resize
+    const resizer = win.querySelector('.window-resizer');
+    let resizing = false, startW, startH, startX, startY;
+    resizer.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      resizing = true;
+      const rect = win.getBoundingClientRect();
+      startW = rect.width;
+      startH = rect.height;
+      startX = e.clientX;
+      startY = e.clientY;
+      focusWindow(win);
+    });
+    document.addEventListener('mousemove', e => {
+      if (!resizing) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      win.style.width = Math.max(260, startW + dx) + 'px';
+      win.style.height = Math.max(180, startH + dy) + 'px';
+    });
+    document.addEventListener('mouseup', () => resizing = false);
+
+    // Controls
+    const btnClose = win.querySelector('.window-btn.close');
+    const btnMin = win.querySelector('.window-btn.min');
+    const btnMax = win.querySelector('.window-btn.max');
+    let maximized = false;
+    let prevRect = null;
+
+    btnClose.addEventListener('click', () => closeWindow(appId));
+    btnMin.addEventListener('click', () => minimizeWindow(appId));
+    btnMax.addEventListener('click', () => {
+      if (!maximized) {
+        const rect = win.getBoundingClientRect();
+        prevRect = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+        win.style.left = '4px';
+        win.style.top = '4px';
+        win.style.width = (window.innerWidth - 8) + 'px';
+        win.style.height = (window.innerHeight - 56) + 'px';
+        maximized = true;
+      } else if (prevRect) {
+        win.style.left = prevRect.left + 'px';
+        win.style.top = prevRect.top + 'px';
+        win.style.width = prevRect.width + 'px';
+        win.style.height = prevRect.height + 'px';
+        maximized = false;
+      }
+    });
+
+    win.addEventListener('mousedown', () => focusWindow(win));
+
+    windows.set(appId, win);
+    createTaskbarItem(appId, title);
+    focusWindow(win);
+    return win;
+  }
+
+  function focusWindow(win) {
+    document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+    win.classList.add('active');
+    win.style.zIndex = ++zIndexCounter;
+    const appId = win.dataset.appId;
+    taskItems.forEach((el, id) => el.classList.toggle('active', id === appId));
+  }
+
+  function closeWindow(appId) {
+    const win = windows.get(appId);
+    if (win && win._cleanup) win._cleanup();
+    if (win) {
+      win.remove();
+      windows.delete(appId);
+    }
+    const task = taskItems.get(appId);
+    if (task) {
+      task.remove();
+      taskItems.delete(appId);
+    }
+  }
+
+  function minimizeWindow(appId) {
+    const win = windows.get(appId);
+    if (!win) return;
+    const hidden = win.style.display === 'none';
+    win.style.display = hidden ? 'flex' : 'none';
+  }
+
+  function createTaskbarItem(appId, title) {
+    if (taskItems.has(appId)) return;
+    const btn = document.createElement('button');
+    btn.className = 'taskbar-item active';
+    btn.textContent = title;
+    btn.addEventListener('click', () => {
+      const win = windows.get(appId);
+      if (!win) return;
+      if (win.style.display === 'none') {
+        win.style.display = 'flex';
+        focusWindow(win);
+      } else {
+        minimizeWindow(appId);
+      }
+    });
+    taskbarApps.appendChild(btn);
+    taskItems.set(appId, btn);
+  }
+
+  // --- App launcher ---
+  function openApp(appId) {
+    const app = apps.find(a => a.id === appId);
+    if (!app) return;
+    let win = windows.get(appId);
+    if (!win) {
+      win = createWindow(appId, app.name);
+      mountApp(appId, win.querySelector('.window-content'), win);
+    } else {
+      if (win.style.display === 'none') win.style.display = 'flex';
+      focusWindow(win);
+    }
+  }
+
+  // --- Apps ---
+  function mountApp(appId, container, win) {
+    switch (appId) {
+      case 'browser': return appBrowser(container);
+      case 'notes': return appNotes(container);
+      case 'todo': return appTodo(container);
+      case 'calc': return appCalc(container);
+      case 'clock': return appClock(container, win);
+      case 'timer': return appTimer(container, win);
+      case 'stopwatch': return appStopwatch(container, win);
+      case 'color': return appColor(container);
+      case 'paint': return appPaint(container);
+      case 'calendar': return appCalendar(container);
+      case 'editor': return appEditor(container);
+      case 'md': return appMarkdown(container);
+      case 'ttt': return appTTT(container);
+      case 'random': return appRandom(container);
+      case 'fileview': return appFileViewer(container);
+      case 'apploader': return appLoader(container);
+      case 'about': return appAbout(container);
+      case 'settings': return appSettings(container);
+      case 'explorer': return appExplorer(container);
+      case 'photos': return appPhotos(container);
+      case 'terminal': return appTerminal(container);
+      case 'media': return appMedia(container);
+      case 'sticky': return appSticky(container);
+      
+      // NEW APP MOUNT FUNCTIONS
+      case 'weather': return appWeather(container);
+      case 'uniter': return appUnitConverter(container);
+      case 'pomodoro': return appPomodoro(container, win);
+      case 'passwordgen': return appPasswordGenerator(container);
+      case 'bmicalc': return appBMICalculator(container);
+      case 'tipcalc': return appTipCalculator(container);
+      case 'agecalc': return appAgeCalculator(container);
+      case 'quiz': return appQuiz(container);
+      case 'memorygame': return appMemoryGame(container);
+      case 'hexbin': return appHexBinConverter(container);
+      case 'loremipsum': return appLoremIpsum(container);
+      case 'caseswitch': return appCaseSwitcher(container);
+      case 'stopwatchpro': return appStopwatchPro(container, win);
+      case 'expensesplit': return appExpenseSplitter(container);
+      case 'habittracker': return appHabitTracker(container, win);
+      case 'jsonfmt': return appJsonFormatter(container);
+    }
+  }
+
+  // ========== ORIGINAL APPS (unchanged below for brevity) ==========
+  
+  // 1. Mini Browser
+  function appBrowser(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>URL</label>
+        <div class="flex">
+          <input type="text" id="browser-url" placeholder="https://example.com">
+          <button class="btn primary" id="browser-go">Go</button>
+        </div>
+      </div>
+      <iframe class="app-frame" id="browser-frame" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      <div class="small-text" style="margin-top:4px;">Some sites may block embedding in iframes.</div>
+    `;
+    const urlInput = root.querySelector('#browser-url');
+    const frame = root.querySelector('#browser-frame');
+    root.querySelector('#browser-go').addEventListener('click', () => {
+      let url = urlInput.value.trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      frame.src = url;
+    });
+  }
+
+  // 2. Notepad
+  function appNotes(root) {
+    const saved = localStorage.getItem('ultra_notes') || '';
+    root.innerHTML = `
+      <div class="field">
+        <label>Notepad</label>
+        <textarea id="notes-area" rows="10" placeholder="Write anything…">${saved}</textarea>
+      </div>
+      <button class="btn primary" id="notes-save">Save</button>
+      <span class="small-text" id="notes-status" style="margin-left:6px;"></span>
+    `;
+    const area = root.querySelector('#notes-area');
+    const status = root.querySelector('#notes-status');
+    root.querySelector('#notes-save').addEventListener('click', () => {
+      localStorage.setItem('ultra_notes', area.value);
+      status.textContent = 'Saved';
+      setTimeout(() => status.textContent = '', 1200);
+    });
+  }
+
+  // 3. To-Do
+  function appTodo(root) {
+    const saved = JSON.parse(localStorage.getItem('ultra_todo') || '[]');
+    root.innerHTML = `
+      <div class="field">
+        <label>New task</label>
+        <div class="flex">
+          <input type="text" id="todo-input" placeholder="Add a task">
+          <button class="btn primary" id="todo-add">Add</button>
+        </div>
+      </div>
+      <div id="todo-list"></div>
+    `;
+    const input = root.querySelector('#todo-input');
+    const list = root.querySelector('#todo-list');
+
+    function render() {
+      list.innerHTML = '';
+      saved.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'todo-item';
+        div.innerHTML = `
+          <span class="${item.done ? 'done' : ''}">${item.text}</span>
+          <div class="flex">
+            <button class="btn" data-act="toggle" data-idx="${idx}">${item.done ? 'Undo' : 'Done'}</button>
+            <button class="btn" data-act="del" data-idx="${idx}">✕</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+    function save() {
+      localStorage.setItem('ultra_todo', JSON.stringify(saved));
+    }
+    root.querySelector('#todo-add').addEventListener('click', () => {
+      const text = input.value.trim();
+      if (!text) return;
+      saved.push({ text, done: false });
+      input.value = '';
+      save();
+      render();
+    });
+    list.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const idx = +btn.dataset.idx;
+      if (btn.dataset.act === 'toggle') {
+        saved[idx].done = !saved[idx].done;
+      } else if (btn.dataset.act === 'del') {
+        saved.splice(idx, 1);
+      }
+      save();
+      render();
+    });
+    render();
+  }
+
+  // 4. Calculator
+  function appCalc(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Expression</label>
+        <input type="text" id="calc-exp" placeholder="e.g. 2+3*4 or Math.sin(1)">
+      </div>
+      <div class="flex" style="margin-bottom:6px;">
+        <button class="btn" data-fn="sin">sin()</button>
+        <button class="btn" data-fn="cos">cos()</button>
+        <button class="btn" data-fn="tan">tan()</button>
+        <button class="btn" data-fn="sqrt">√()</button>
+        <button class="btn" data-fn="pow">^</button>
+      </div>
+      <button class="btn primary" id="calc-eval">Calculate</button>
+      <div style="margin-top:8px;">Result: <span id="calc-result">—</span></div>
+      <div class="small-text" style="margin-top:4px;">Uses JavaScript; avoid untrusted input.</div>
+    `;
+    const exp = root.querySelector('#calc-exp');
+    const res = root.querySelector('#calc-result');
+    root.querySelector('#calc-eval').addEventListener('click', () => {
+      try {
+        const val = Function('"use strict";return (' + exp.value + ')')();
+        res.textContent = val;
+      } catch {
+        res.textContent = 'Error';
+      }
+    });
+    root.querySelectorAll('[data-fn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fn = btn.dataset.fn;
+        if (fn === 'pow') {
+          exp.value += '**';
+        } else {
+          exp.value += 'Math.' + fn + '()';
+        }
+        exp.focus();
+      });
+    });
+  }
+
+  // 5. Clock
+  function appClock(root, win) {
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Local time</span>
+        <span class="small-text">World clocks</span>
+      </div>
+      <div class="flex" style="margin-top:4px;">
+        <div style="flex:1;">
+          <div style="font-size:26px;" id="clock-time"></div>
+          <div class="small-text" id="clock-date"></div>
+        </div>
+        <div style="flex:1;">
+          <div class="small-text">UTC: <span id="clock-utc"></span></div>
+          <div class="small-text">Tokyo: <span id="clock-tokyo"></span></div>
+          <div class="small-text">London: <span id="clock-london"></span></div>
+        </div>
+      </div>
+    `;
+    const t = root.querySelector('#clock-time');
+    const d = root.querySelector('#clock-date');
+    const utc = root.querySelector('#clock-utc');
+    const tokyo = root.querySelector('#clock-tokyo');
+    const london = root.querySelector('#clock-london');
+
+    function tick() {
+      const now = new Date();
+      t.textContent = now.toLocaleTimeString();
+      d.textContent = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      utc.textContent = now.toUTCString().split(' ')[4];
+      tokyo.textContent = now.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo' });
+      london.textContent = now.toLocaleTimeString('en-GB', { timeZone: 'Europe/London' });
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    win._cleanup = () => clearInterval(id);
+  }
+
+  // 6. Timer
+  function appTimer(root, win) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Seconds</label>
+        <input type="number" id="timer-seconds" value="60" min="1">
+      </div>
+      <div class="flex">
+        <button class="btn primary" id="timer-start">Start</button>
+        <button class="btn" id="timer-stop">Stop</button>
+      </div>
+      <div style="margin-top:8px;">Remaining: <span id="timer-remaining">—</span></div>
+    `;
+    const input = root.querySelector('#timer-seconds');
+    const remaining = root.querySelector('#timer-remaining');
+    let left = 0;
+    let interval = null;
+
+    function update() {
+      remaining.textContent = left > 0 ? left + ' s' : 'Done';
+    }
+    root.querySelector('#timer-start').addEventListener('click', () => {
+      left = Math.max(1, parseInt(input.value, 10) || 1);
+      update();
+      if (interval) clearInterval(interval);
+      interval = setInterval(() => {
+        left--;
+        if (left <= 0) {
+          left = 0;
+          clearInterval(interval);
+          interval = null;
+          alert('Timer finished');
+        }
+        update();
+      }, 1000);
+    });
+    root.querySelector('#timer-stop').addEventListener('click', () => {
+      if (interval) clearInterval(interval);
+      interval = null;
+    });
+    win._cleanup = () => interval && clearInterval(interval);
+  }
+
+  // 7. Stopwatch
+  function appStopwatch(root, win) {
+    root.innerHTML = `
+      <div style="font-size:28px;" id="sw-time">00:00.0</div>
+      <div class="flex" style="margin-top:6px;">
+        <button class="btn primary" id="sw-start">Start</button>
+        <button class="btn" id="sw-stop">Stop</button>
+        <button class="btn" id="sw-reset">Reset</button>
+      </div>
+    `;
+    const display = root.querySelector('#sw-time');
+    let start = null;
+    let elapsed = 0;
+    let raf = null;
+
+    function render() {
+      const now = performance.now();
+      const total = elapsed + (start ? now - start : 0);
+      const sec = total / 1000;
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      const ms = Math.floor((sec * 10) % 10);
+      display.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + ms;
+      if (start) raf = requestAnimationFrame(render);
+    }
+    root.querySelector('#sw-start').addEventListener('click', () => {
+      if (start) return;
+      start = performance.now();
+      raf = requestAnimationFrame(render);
+    });
+    root.querySelector('#sw-stop').addEventListener('click', () => {
+      if (!start) return;
+      elapsed += performance.now() - start;
+      start = null;
+      if (raf) cancelAnimationFrame(raf);
+    });
+    root.querySelector('#sw-reset').addEventListener('click', () => {
+      start = null;
+      elapsed = 0;
+      if (raf) cancelAnimationFrame(raf);
+      display.textContent = '00:00.0';
+    });
+    win._cleanup = () => raf && cancelAnimationFrame(raf);
+  }
+
+  // 8. Color Picker
+  function appColor(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Pick a color</label>
+        <input type="color" id="color-input" value="#2563eb">
+      </div>
+      <div>Hex: <span id="color-hex">#2563eb</span></div>
+      <div>RGB: <span id="color-rgb"></span></div>
+    `;
+    const input = root.querySelector('#color-input');
+    const hex = root.querySelector('#color-hex');
+    const rgb = root.querySelector('#color-rgb');
+
+    function update() {
+      const val = input.value;
+      hex.textContent = val;
+      const r = parseInt(val.slice(1, 3), 16);
+      const g = parseInt(val.slice(3, 5), 16);
+      const b = parseInt(val.slice(5, 7), 16);
+      rgb.textContent = `rgb(${r}, ${g}, ${b})`;
+    }
+    input.addEventListener('input', update);
+    update();
+  }
+
+  // 9. Paint
+  function appPaint(root) {
+    root.innerHTML = `
+      <div class="flex-between">
+        <div class="flex">
+          <label class="small-text">Color</label>
+          <input type="color" id="paint-color" value="#ffffff">
+          <label class="small-text">Size</label>
+          <input type="number" id="paint-size" value="2" min="1" max="20" style="width:50px;">
+        </div>
+        <div class="flex">
+          <button class="btn" id="paint-eraser">Eraser</button>
+          <button class="btn" id="paint-clear">Clear</button>
+          <button class="btn" id="paint-save">Save PNG</button>
+        </div>
+      </div>
+      <canvas class="paint" id="paint-canvas" width="380" height="190" style="margin-top:6px;"></canvas>
+    `;
+    const canvas = root.querySelector('#paint-canvas');
+    const ctx = canvas.getContext('2d');
+    const color = root.querySelector('#paint-color');
+    const size = root.querySelector('#paint-size');
+    const clearBtn = root.querySelector('#paint-clear');
+    const eraserBtn = root.querySelector('#paint-eraser');
+    const saveBtn = root.querySelector('#paint-save');
+    let drawing = false;
+    let erasing = false;
+
+    function resetCanvas() {
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    resetCanvas();
+    ctx.lineCap = 'round';
+
+    canvas.addEventListener('mousedown', e => {
+      drawing = true;
+      ctx.beginPath();
+      const rect = canvas.getBoundingClientRect();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineWidth = Math.max(1, parseInt(size.value, 10) || 2);
+      ctx.strokeStyle = erasing ? '#020617' : color.value;
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+    });
+    document.addEventListener('mouseup', () => drawing = false);
+    clearBtn.addEventListener('click', resetCanvas);
+    eraserBtn.addEventListener('click', () => {
+      erasing = !erasing;
+      eraserBtn.textContent = erasing ? 'Brush' : 'Eraser';
+    });
+    saveBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'drawing.png';
+      link.click();
+    });
+  }
+
+  // 10. Calendar
+  function appCalendar(root) {
+    const events = JSON.parse(localStorage.getItem('ultra_events') || '[]');
+    const now = new Date();
+    root.innerHTML = `
+      <div class="flex-between">
+        <button class="btn" id="cal-prev">◀</button>
+        <div id="cal-title"></div>
+        <button class="btn" id="cal-next">▶</button>
+      </div>
+      <div style="margin-top:6px;" id="cal-grid"></div>
+      <div class="field" style="margin-top:6px;">
+        <label>Add event</label>
+        <div class="flex">
+          <input type="date" id="cal-date">
+          <input type="text" id="cal-text" placeholder="Event">
+          <button class="btn primary" id="cal-add">Add</button>
+        </div>
+      </div>
+      <div class="small-text" id="cal-events"></div>
+    `;
+    const title = root.querySelector('#cal-title');
+    const grid = root.querySelector('#cal-grid');
+    const dateInput = root.querySelector('#cal-date');
+    const textInput = root.querySelector('#cal-text');
+    const eventsDiv = root.querySelector('#cal-events');
+    let month = now.getMonth();
+    let year = now.getFullYear();
+
+    function render() {
+      const first = new Date(year, month, 1);
+      const startDay = first.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      title.textContent = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      let html = `<div class="small-text">Sun Mon Tue Wed Thu Fri Sat</div>`;
+      html += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:4px;">`;
+      for (let i = 0; i < startDay; i++) {
+        html += `<div class="small-text">&nbsp;</div>`;
+      }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const hasEvent = events.some(ev => ev.date === dateStr);
+        html += `<div class="small-text" style="text-align:center;${hasEvent ? 'color:#22c55e;' : ''}">${d}</div>`;
+      }
+      html += `</div>`;
+      grid.innerHTML = html;
+
+      const todayStr = now.toISOString().slice(0,10);
+      const todayEvents = events.filter(ev => ev.date === todayStr);
+      if (todayEvents.length) {
+        eventsDiv.textContent = 'Today: ' + todayEvents.map(e => e.text).join(', ');
+      } else {
+        eventsDiv.textContent = 'No events today.';
+      }
+    }
+    root.querySelector('#cal-prev').addEventListener('click', () => {
+      month--;
+      if (month < 0) { month = 11; year--; }
+      render();
+    });
+    root.querySelector('#cal-next').addEventListener('click', () => {
+      month++;
+      if (month > 11) { month = 0; year++; }
+      render();
+    });
+    root.querySelector('#cal-add').addEventListener('click', () => {
+      const date = dateInput.value;
+      const text = textInput.value.trim();
+      if (!date || !text) return;
+      events.push({ date, text });
+      localStorage.setItem('ultra_events', JSON.stringify(events));
+      textInput.value = '';
+      render();
+    });
+    render();
+  }
+
+  // 11. Text Editor
+  function appEditor(root) {
+    const saved = localStorage.getItem('ultra_editor') || '';
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Simple text editor</span>
+        <button class="btn primary" id="editor-save">Save</button>
+      </div>
+      <textarea id="editor-area" rows="10" style="margin-top:6px;">${saved}</textarea>
+      <span class="small-text" id="editor-status"></span>
+    `;
+    const area = root.querySelector('#editor-area');
+    const status = root.querySelector('#editor-status');
+    root.querySelector('#editor-save').addEventListener('click', () => {
+      localStorage.setItem('ultra_editor', area.value);
+      status.textContent = 'Saved';
+      setTimeout(() => status.textContent = '', 1200);
+    });
+  }
+
+  // 12. Markdown
+  function appMarkdown(root) {
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Markdown → HTML (basic)</span>
+        <button class="btn" id="md-export">Export HTML</button>
+      </div>
+      <div class="flex" style="margin-top:6px;">
+        <textarea id="md-input" rows="10" style="flex:1;" placeholder="# Title&#10;&#10;**bold** _italic_"></textarea>
+        <div id="md-output" style="flex:1; margin-left:6px; padding:6px; border-radius:8px; border:1px solid rgba(148,163,184,0.6); background:rgba(15,23,42,0.8); overflow:auto;"></div>
+      </div>
+    `;
+    const input = root.querySelector('#md-input');
+    const output = root.querySelector('#md-output');
+    const exportBtn = root.querySelector('#md-export');
+
+    function render() {
+      let text = input.value;
+      text = text
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/gim, '<b>$1</b>')
+        .replace(/_(.*?)_/gim, '<i>$1</i>')
+        .replace(/\n/g, '<br>');
+      output.innerHTML = text;
+    }
+    input.addEventListener('input', render);
+    exportBtn.addEventListener('click', () => {
+      const html = output.innerHTML;
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'markdown.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // 13. Tic-Tac-Toe
+  function appTTT(root) {
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Player: <span id="ttt-player">X</span></span>
+        <button class="btn" id="ttt-reset">Reset</button>
+      </div>
+      <div class="grid-ttt" id="ttt-grid"></div>
+      <div style="margin-top:6px;" id="ttt-status"></div>
+    `;
+    const grid = root.querySelector('#ttt-grid');
+    const playerSpan = root.querySelector('#ttt-player');
+    const status = root.querySelector('#ttt-status');
+    let board = Array(9).fill('');
+    let player = 'X';
+    let finished = false;
+
+    function checkWin() {
+      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for (const [a,b,c] of lines) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+      }
+      if (board.every(Boolean)) return 'draw';
+      return null;
+    }
+
+    function render() {
+      grid.innerHTML = '';
+      board.forEach((val, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = val;
+        btn.addEventListener('click', () => {
+          if (finished || board[idx]) return;
+          board[idx] = player;
+          const res = checkWin();
+          if (res === 'draw') { status.textContent = 'Draw!'; finished = true; }
+          else if (res) { status.textContent = res + ' wins!'; finished = true; }
+          else { player = player === 'X' ? 'O' : 'X'; playerSpan.textContent = player; }
+          render();
+        });
+        grid.appendChild(btn);
+      });
+    }
+    root.querySelector('#ttt-reset').addEventListener('click', () => {
+      board = Array(9).fill('');
+      player = 'X';
+      finished = false;
+      playerSpan.textContent = player;
+      status.textContent = '';
+      render();
+    });
+    render();
+  }
+
+  // 14. Randomizer
+  function appRandom(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Range</label>
+        <div class="flex">
+          <input type="number" id="rand-min" value="1">
+          <input type="number" id="rand-max" value="100">
+        </div>
+      </div>
+      <button class="btn primary" id="rand-go">Generate</button>
+      <div style="margin-top:8px;">Result: <span id="rand-result">—</span></div>
+    `;
+    const min = root.querySelector('#rand-min');
+    const max = root.querySelector('#rand-max');
+    const res = root.querySelector('#rand-result');
+    root.querySelector('#rand-go').addEventListener('click', () => {
+      const a = parseInt(min.value, 10);
+      const b = parseInt(max.value, 10);
+      if (isNaN(a) || isNaN(b) || b < a) { res.textContent = 'Invalid range'; return; }
+      const val = Math.floor(Math.random() * (b - a + 1)) + a;
+      res.textContent = val;
+    });
+  }
+
+  // 15. File Viewer
+  function appFileViewer(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Open text file</label>
+        <input type="file" id="fv-file" accept=".txt,.md,.json,.log,.html,.css,.js">
+      </div>
+      <pre id="fv-content" style="max-height:160px; overflow:auto; padding:6px; border-radius:8px; border:1px solid rgba(148,163,184,0.6); background:rgba(15,23,42,0.8);"></pre>
+    `;
+    const input = root.querySelector('#fv-file');
+    const content = root.querySelector('#fv-content');
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { content.textContent = e.target.result; };
+      reader.readAsText(file);
+    });
+  }
+
+  // 16. App Loader
+  function appLoader(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>External app URL (HTML/PHP)</label>
+        <input type="text" id="loader-url" placeholder="https://your-server/app.php">
+      </div>
+      <button class="btn primary" id="loader-open">Open in window</button>
+      <div class="small-text" style="margin-top:4px;">
+        The app will load in an iframe. PHP runs on your server, not in this file.
+      </div>
+    `;
+    const input = root.querySelector('#loader-url');
+    root.querySelector('#loader-open').addEventListener('click', () => {
+      let url = input.value.trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      const id = 'ext_' + url;
+      const title = 'App: ' + url.replace(/^https?:\/\//, '');
+      let win = windows.get(id);
+      if (!win) {
+        win = createWindow(id, title);
+        const content = win.querySelector('.window-content');
+        content.innerHTML = `<iframe class="app-frame" src="${url}" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>`;
+      } else {
+        if (win.style.display === 'none') win.style.display = 'flex';
+        focusWindow(win);
+      }
+    });
+  }
+
+  // 17. Settings
+  function appSettings(root) {
+    const storedAccent = localStorage.getItem('ultra_accent');
+    const storedBg = localStorage.getItem('ultra_bg');
+    if (storedAccent) document.documentElement.style.setProperty('--accent', storedAccent);
+    if (storedBg) document.body.style.background = storedBg;
+    root.innerHTML = `
+      <div class="field">
+        <label>Theme</label>
+        <select id="set-theme">
+          <option value="default">Default</option>
+          <option value="light">Light</option>
+          <option value="amoled">AMOLED</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Accent color</label>
+        <input type="color" id="set-accent" value="${storedAccent || '#2563eb'}">
+      </div>
+      <div class="field">
+        <label>Wallpaper</label>
+        <select id="set-wall">
+          <option value="default">Blue gradient</option>
+          <option value="purple">Purple glow</option>
+          <option value="solid">Solid dark</option>
+        </select>
+      </div>
+      <button class="btn primary" id="set-apply">Apply</button>
+      <span class="small-text" id="set-status" style="margin-left:6px;"></span>
+    `;
+    const accentInput = root.querySelector('#set-accent');
+    const wallSelect = root.querySelector('#set-wall');
+    const themeSelect = root.querySelector('#set-theme');
+    const status = root.querySelector('#set-status');
+
+    root.querySelector('#set-apply').addEventListener('click', () => {
+      const accent = accentInput.value;
+      document.documentElement.style.setProperty('--accent', accent);
+      localStorage.setItem('ultra_accent', accent);
+
+      const theme = themeSelect.value;
+      let bg;
+      if (theme === 'light') {
+        bg = '#e5e7eb';
+      } else if (theme === 'amoled') {
+        bg = '#000000';
+      } else {
+        const wall = wallSelect.value;
+        switch (wall) {
+          case 'purple':
+            bg = 'radial-gradient(circle at top, #7c3aed 0, #020617 55%, #000 100%)';
+            break;
+          case 'solid':
+            bg = '#020617';
+            break;
+          default:
+            bg = 'radial-gradient(circle at top, #1d4ed8 0, #020617 55%, #000 100%)';
+        }
+      }
+      document.body.style.background = bg;
+      localStorage.setItem('ultra_bg', bg);
+      status.textContent = 'Applied';
+      setTimeout(() => status.textContent = '', 1200);
+    });
+  }
+
+  // 18. File Explorer (virtual)
+  function appExplorer(root) {
+    const files = JSON.parse(localStorage.getItem('ultra_files') || '[]');
+    root.innerHTML = `
+      <div class="field">
+        <label>New file</label>
+        <div class="flex">
+          <input type="text" id="exp-name" placeholder="name.txt">
+          <button class="btn primary" id="exp-add">Create</button>
+        </div>
+      </div>
+      <div class="explorer-list" id="exp-list"></div>
+      <div class="small-text" style="margin-top:4px;">Double-click a file to open in File Viewer.</div>
+    `;
+    const nameInput = root.querySelector('#exp-name');
+    const list = root.querySelector('#exp-list');
+
+    function save() {
+      localStorage.setItem('ultra_files', JSON.stringify(files));
+    }
+    function render() {
+      list.innerHTML = '';
+      if (!files.length) {
+        list.innerHTML = `<div class="small-text">No files yet.</div>`;
+        return;
+      }
+      files.forEach((f, idx) => {
+        const div = document.createElement('div');
+        div.className = 'explorer-item';
+        div.innerHTML = `<span>${f.name}</span><span class="small-text">${f.type}</span>`;
+        div.addEventListener('dblclick', () => {
+          openApp('fileview');
+          const win = windows.get('fileview');
+          if (!win) return;
+          const content = win.querySelector('#fv-content');
+          if (content) content.textContent = f.content || '';
+        });
+        list.appendChild(div);
+      });
+    }
+    root.querySelector('#exp-add').addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      if (!name) return;
+      files.push({ name, type: 'text', content: '' });
+      nameInput.value = '';
+      save();
+      render();
+    });
+    render();
+  }
+
+  // 19. Photos
+  function appPhotos(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Open image</label>
+        <input type="file" id="ph-file" accept="image/*">
+      </div>
+      <div style="max-height:170px; overflow:auto; border-radius:8px; border:1px solid rgba(148,163,184,0.6); background:rgba(15,23,42,0.8); display:flex; align-items:center; justify-content:center;">
+        <img id="ph-img" style="max-width:100%; max-height:160px; display:none;">
+      </div>
+    `;
+    const input = root.querySelector('#ph-file');
+    const img = root.querySelector('#ph-img');
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        img.src = e.target.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 20. Terminal
+  function appTerminal(root) {
+    root.innerHTML = `
+      <div class="terminal" id="term-output"></div>
+      <input class="terminal-input" id="term-input" placeholder="Type a command (help, dir, echo, clear)">
+    `;
+    const out = root.querySelector('#term-output');
+    const input = root.querySelector('#term-input');
+
+    function print(line) {
+      out.innerHTML += line + '<br>';
+      out.scrollTop = out.scrollHeight;
+    }
+    print('Windows 11 Ultra Terminal (simulated)');
+    print('Type "help" for commands.');
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const cmd = input.value.trim();
+        input.value = '';
+        if (!cmd) return;
+        print('> ' + cmd);
+        handle(cmd);
+      }
+    });
+
+    function handle(cmd) {
+      const parts = cmd.split(' ');
+      const base = parts[0].toLowerCase();
+      if (base === 'help') {
+        print('Commands: help, dir, echo, clear, time, date');
+      } else if (base === 'dir') {
+        print('Directory listing (virtual):');
+        apps.forEach(a => print('  ' + a.name));
+      } else if (base === 'echo') {
+        print(parts.slice(1).join(' '));
+      } else if (base === 'clear') {
+        out.innerHTML = '';
+      } else if (base === 'time') {
+        print('Time: ' + new Date().toLocaleTimeString());
+      } else if (base === 'date') {
+        print('Date: ' + new Date().toLocaleDateString());
+      } else {
+        print('Unknown command. Type "help".');
+      }
+    }
+  }
+
+  // 21. Media Player
+  function appMedia(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Add media files</label>
+        <input type="file" id="media-files" multiple accept="audio/*,video/*">
+      </div>
+      <div class="media-list" id="media-list"></div>
+      <div style="margin-top:6px;">
+        <audio id="media-audio" controls style="width:100%; display:none;"></audio>
+        <video id="media-video" controls style="width:100%; max-height:140px; display:none;"></video>
+      </div>
+    `;
+    const input = root.querySelector('#media-files');
+    const list = root.querySelector('#media-list');
+    const audio = root.querySelector('#media-audio');
+    const video = root.querySelector('#media-video');
+    let items = [];
+
+    input.addEventListener('change', () => {
+      items = Array.from(input.files);
+      render();
+    });
+
+    function render() {
+      list.innerHTML = '';
+      items.forEach((file, idx) => {
+        const div = document.createElement('div');
+        div.className = 'media-item';
+        div.textContent = file.name;
+        div.addEventListener('click', () => play(idx));
+        list.appendChild(div);
+      });
+    }
+
+    function play(idx) {
+      const file = items[idx];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('audio')) {
+        video.style.display = 'none';
+        audio.style.display = 'block';
+        audio.src = url;
+        audio.play();
+      } else if (file.type.startsWith('video')) {
+        audio.style.display = 'none';
+        video.style.display = 'block';
+        video.src = url;
+        video.play();
+      }
+    }
+  }
+
+  // 22. Sticky Notes
+  function appSticky(root) {
+    root.innerHTML = `
+      <button class="btn primary" id="sticky-new">New note</button>
+      <div class="small-text" style="margin-top:4px;">Notes appear on the desktop and auto-save.</div>
+    `;
+    root.querySelector('#sticky-new').addEventListener('click', () => createSticky());
+  }
+
+  function createSticky() {
+    const note = document.createElement('div');
+    note.className = 'sticky-note';
+    note.style.left = (100 + Math.random() * 200) + 'px';
+    note.style.top = (80 + Math.random() * 120) + 'px';
+    note.innerHTML = `
+      <div class="sticky-note-header">
+        <span>Note</span>
+        <button title="Delete">✕</button>
+      </div>
+      <textarea placeholder="Write..."></textarea>
+    `;
+    document.body.appendChild(note);
+
+    const header = note.querySelector('.sticky-note-header');
+    const del = note.querySelector('button');
+    let dragging = false, offsetX = 0, offsetY = 0;
+    header.addEventListener('mousedown', e => {
+      dragging = true;
+      const rect = note.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      note.style.left = (e.clientX - offsetX) + 'px';
+      note.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mouseup', () => dragging = false);
+    del.addEventListener('click', () => note.remove());
+  }
+
+  // About
+  function appAbout(root) {
+    root.innerHTML = `
+      <h3 style="margin-bottom:6px;">Windows 11 Ultra Simulator</h3>
+      <p class="small-text">
+        Single-file HTML desktop with window manager, Start Menu, App Loader, Terminal, Media Player, Sticky Notes, and more.
+      </p>
+      <p class="small-text" style="margin-top:6px;">
+        Desktop icons, Start Menu apps, and windows are all interactive. External apps (HTML/PHP) can be loaded via App Loader.
+      </p>
+      <p class="small-text" style="margin-top:6px;">
+        Now includes ${apps.length} apps: Weather, Unit Converter, Pomodoro, Password Generator, BMI Calculator,
+        Tip Calculator, Age Calculator, Quiz, Memory Game, Base Converter, Lorem Ipsum, Case Switcher,
+        Stopwatch Pro, Expense Splitter, Habit Tracker, and JSON Formatter.
+      </p>
+    `;
+  }
+
+  // =========================================================================
+  // ================== NEW APPS (15+) =======================================
+  // =========================================================================
+
+  // N1. Weather (Open-Meteo free API, no key required)
+  function appWeather(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>City name</label>
+        <div class="flex">
+          <input type="text" id="w-city" placeholder="e.g. London, Tokyo, New York" value="London">
+          <button class="btn primary" id="w-fetch">Fetch</button>
+        </div>
+      </div>
+      <div id="w-card" class="weather-card">
+        <div class="small-text">Enter a city and click Fetch.</div>
+      </div>
+      <div class="small-text" style="margin-top:4px;">Powered by Open-Meteo (free, no API key).</div>
+    `;
+    const cityInput = root.querySelector('#w-city');
+    const card = root.querySelector('#w-card');
+
+    async function fetchWeather(city) {
+      card.innerHTML = '<div class="small-text">Fetching geocode…</div>';
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+        const geoData = await geoRes.json();
+        if (!geoData.results || !geoData.results.length) {
+          card.innerHTML = '<div class="small-text">City not found.</div>';
+          return;
+        }
+        const loc = geoData.results[0];
+        card.innerHTML = `<div class="small-text">Fetching weather for ${loc.name}, ${loc.country}…</div>`;
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current_weather=true&hourly=temperature_2m,relativehumidity_2m&timezone=auto`);
+        const wData = await wRes.json();
+        const cw = wData.current_weather;
+        const tempC = cw.temperature;
+        const wind = cw.windspeed;
+        const code = cw.weathercode;
+        const desc = weatherCodeToDesc(code);
+        card.innerHTML = `
+          <div style="font-size:16px; font-weight:bold; margin-bottom:4px;">${loc.name}, ${loc.country}</div>
+          <div class="weather-temp">${tempC}°C</div>
+          <div class="small-text" style="margin-top:4px;">${desc}</div>
+          <div class="small-text">Wind: ${wind} km/h</div>
+          <div class="small-text">Time: ${cw.time}</div>
+        `;
+      } catch (err) {
+        card.innerHTML = '<div class="small-text">Error fetching weather. Check connection.</div>';
+      }
+    }
+
+    function weatherCodeToDesc(code) {
+      const map = {
+        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+        45: 'Foggy', 48: 'Depositing rime fog',
+        51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+        61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+        71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+        77: 'Snow grains',
+        80: 'Rain showers', 81: 'Heavy rain showers', 82: 'Violent rain showers',
+        95: 'Thunderstorm', 96: 'Thunderstorm w/ hail', 99: 'Severe thunderstorm w/ hail'
+      };
+      return map[code] || 'Unknown (' + code + ')';
+    }
+
+    root.querySelector('#w-fetch').addEventListener('click', () => {
+      const c = cityInput.value.trim();
+      if (c) fetchWeather(c);
+    });
+  }
+
+  // N2. Unit Converter
+  function appUnitConverter(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Category</label>
+        <select id="uc-cat">
+          <option value="length">Length</option>
+          <option value="weight">Weight</option>
+          <option value="temp">Temperature</option>
+          <option value="volume">Volume</option>
+          <option value="speed">Speed</option>
+          <option value="area">Area</option>
+          <option value="time">Time</option>
+        </select>
+      </div>
+      <div class="flex" style="margin-bottom:6px;">
+        <div style="flex:1;">
+          <label class="small-text">From</label>
+          <input type="number" id="uc-input" value="1">
+          <select id="uc-from" style="margin-top:2px;"></select>
+        </div>
+        <div style="flex:1;">
+          <label class="small-text">To</label>
+          <input type="number" id="uc-output" readonly style="opacity:0.7;">
+          <select id="uc-to" style="margin-top:2px;"></select>
+        </div>
+      </div>
+      <button class="btn primary" id="uc-convert">Convert</button>
+    `;
+
+    const units = {
+      length: { mm: 0.001, cm: 0.01, m: 1, km: 1000, inch: 0.0254, foot: 0.3048, yard: 0.9144, mile: 1609.34 },
+      weight: { mg: 0.001, g: 1, kg: 1000, oz: 28.3495, lb: 453.592, ton: 1000000 },
+      temp: { Celsius: 'C', Fahrenheit: 'F', Kelvin: 'K' },
+      volume: { ml: 0.001, l: 1, cup: 0.236588, pint: 0.473176, quart: 0.946353, gallon: 3.78541 },
+      speed: { 'm/s': 1, 'km/h': 0.277778, mph: 0.44704, knot: 0.514444, 'ft/s': 0.3048 },
+      area: { 'm²': 1, 'km²': 1000000, 'ft²': 0.092903, 'acre': 4046.86, 'hectare': 10000, 'mile²': 2589988 },
+      time: { seconds: 1, minutes: 60, hours: 3600, days: 86400, weeks: 604800, months: 2629746, years: 31556952 }
+    };
+
+    const catSel = root.querySelector('#uc-cat');
+    const fromSel = root.querySelector('#uc-from');
+    const toSel = root.querySelector('#uc-to');
+    const inputEl = root.querySelector('#uc-input');
+    const outputEl = root.querySelector('#uc-output');
+
+    function populateUnits() {
+      const cat = catSel.value;
+      const keys = Object.keys(units[cat]);
+      fromSel.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+      toSel.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+      toSel.selectedIndex = 1;
+    }
+
+    function convert() {
+      const cat = catSel.value;
+      const val = parseFloat(inputEl.value);
+      const from = fromSel.value;
+      const to = toSel.value;
+      let result;
+      if (cat === 'temp') {
+        // Temperature needs special handling
+        let celsius;
+        if (from === 'C') celsius = val;
+        else if (from === 'F') celsius = (val - 32) * 5 / 9;
+        else celsius = val - 273.15;
+        if (to === 'C') result = celsius;
+        else if (to === 'F') result = celsius * 9 / 5 + 32;
+        else result = celsius + 273.15;
+      } else {
+        const factorFrom = units[cat][from];
+        const factorTo = units[cat][to];
+        result = val * factorFrom / factorTo;
+      }
+      outputEl.value = Math.round(result * 100000) / 100000;
+    }
+
+    catSel.addEventListener('change', populateUnits);
+    root.querySelector('#uc-convert').addEventListener('click', convert);
+    populateUnits();
+    convert();
+  }
+
+  // N3. Pomodoro Timer
+  function appPomodoro(root, win) {
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text" id="pomo-mode-label">Work Mode</span>
+        <span class="small-text">Cycle: <span id="pomo-cycle">0</span></span>
+      </div>
+      <div class="pomodoro-circle" id="pomo-display">25:00</div>
+      <div class="flex" style="justify-content:center;">
+        <button class="btn primary" id="pomo-start">Start</button>
+        <button class="btn" id="pomo-pause">Pause</button>
+        <button class="btn" id="pomo-reset">Reset</button>
+      </div>
+      <div class="flex" style="justify-content:center; margin-top:6px;">
+        <label class="small-text">Work (min):</label>
+        <input type="number" id="pomo-work" value="25" min="1" max="60" style="width:50px;">
+        <label class="small-text">Break (min):</label>
+        <input type="number" id="pomo-break" value="5" min="1" max="30" style="width:50px;">
+      </div>
+    `;
+    const display = root.querySelector('#pomo-display');
+    const modeLabel = root.querySelector('#pomo-mode-label');
+    const cycleEl = root.querySelector('#pomo-cycle');
+    let mode = 'work';
+    let secondsLeft = 25 * 60;
+    let running = false;
+    let interval = null;
+    let cycles = 0;
+
+    function setDurations() {
+      const workMin = Math.max(1, parseInt(root.querySelector('#pomo-work').value, 10) || 25);
+      const breakMin = Math.max(1, parseInt(root.querySelector('#pomo-break').value, 10) || 5);
+      if (mode === 'work' && !running) secondsLeft = workMin * 60;
+      if (mode === 'break' && !running) secondsLeft = breakMin * 60;
+      return { workMin, breakMin };
+    }
+
+    function updateDisplay() {
+      const m = Math.floor(secondsLeft / 60);
+      const s = secondsLeft % 60;
+      display.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function tick() {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        if (mode === 'work') {
+          mode = 'break';
+          cycles++;
+          cycleEl.textContent = cycles;
+          modeLabel.textContent = 'Break Mode';
+          const { breakMin } = setDurations();
+          secondsLeft = breakMin * 60;
+        } else {
+          mode = 'work';
+          modeLabel.textContent = 'Work Mode';
+          const { workMin } = setDurations();
+          secondsLeft = workMin * 60;
+        }
+        if (Notification && Notification.permission === 'granted') {
+          new Notification('Pomodoro', { body: mode === 'work' ? 'Break over — back to work!' : 'Time for a break!' });
+        }
+      }
+      updateDisplay();
+    }
+
+    root.querySelector('#pomo-start').addEventListener('click', () => {
+      if (running) return;
+      running = true;
+      if (Notification && Notification.permission !== 'granted') Notification.requestPermission();
+      interval = setInterval(tick, 1000);
+    });
+    root.querySelector('#pomo-pause').addEventListener('click', () => {
+      running = false;
+      if (interval) { clearInterval(interval); interval = null; }
+    });
+    root.querySelector('#pomo-reset').addEventListener('click', () => {
+      running = false;
+      if (interval) { clearInterval(interval); interval = null; }
+      mode = 'work';
+      modeLabel.textContent = 'Work Mode';
+      secondsLeft = (Math.max(1, parseInt(root.querySelector('#pomo-work').value, 10) || 25)) * 60;
+      updateDisplay();
+    });
+    root.querySelector('#pomo-work').addEventListener('change', () => { if (!running) setDurations(); updateDisplay(); });
+    root.querySelector('#pomo-break').addEventListener('change', () => { if (!running) setDurations(); updateDisplay(); });
+
+    updateDisplay();
+    win._cleanup = () => interval && clearInterval(interval);
+  }
+
+  // N4. Password Generator
+  function appPasswordGenerator(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Password Length: <span id="pw-len-label">16</span></label>
+        <input type="range" id="pw-len" min="4" max="64" value="16">
+      </div>
+      <div class="pass-grid">
+        <label class="small-text"><input type="checkbox" id="pw-upper" checked> Uppercase</label>
+        <label class="small-text"><input type="checkbox" id="pw-lower" checked> Lowercase</label>
+        <label class="small-text"><input type="checkbox" id="pw-numbers" checked> Numbers</label>
+        <label class="small-text"><input type="checkbox" id="pw-symbols"> Symbols</label>
+      </div>
+      <div style="margin-top:8px;">
+        <input type="text" id="pw-output" readonly style="font-family:monospace; font-size:16px; text-align:center;">
+      </div>
+      <div class="flex" style="margin-top:6px; justify-content:center;">
+        <button class="btn primary" id="pw-generate">Generate</button>
+        <button class="btn" id="pw-copy">Copy</button>
+      </div>
+      <div class="small-text" id="pw-strength" style="text-align:center; margin-top:4px;"></div>
+    `;
+    const lenSlider = root.querySelector('#pw-len');
+    const lenLabel = root.querySelector('#pw-len-label');
+    const output = root.querySelector('#pw-output');
+    const strengthEl = root.querySelector('#pw-strength');
+
+    lenSlider.addEventListener('input', () => lenLabel.textContent = lenSlider.value);
+
+    function generate() {
+      const len = parseInt(lenSlider.value, 10);
+      let charset = '';
+      if (root.querySelector('#pw-upper').checked) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      if (root.querySelector('#pw-lower').checked) charset += 'abcdefghijklmnopqrstuvwxyz';
+      if (root.querySelector('#pw-numbers').checked) charset += '0123456789';
+      if (root.querySelector('#pw-symbols').checked) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+      if (!charset) { output.value = 'Select at least one option'; return; }
+      let pw = '';
+      const arr = new Uint32Array(len);
+      crypto.getRandomValues(arr);
+      for (let i = 0; i < len; i++) pw += charset[arr[i] % charset.length];
+      output.value = pw;
+
+      // Strength estimation
+      let pool = 0;
+      if (root.querySelector('#pw-upper').checked) pool += 26;
+      if (root.querySelector('#pw-lower').checked) pool += 26;
+      if (root.querySelector('#pw-numbers').checked) pool += 10;
+      if (root.querySelector('#pw-symbols').checked) pool += 25;
+      const entropy = len * Math.log2(pool || 1);
+      let label, color;
+      if (entropy < 40) { label = 'Weak'; color = '#ef4444'; }
+      else if (entropy < 60) { label = 'Fair'; color = '#eab308'; }
+      else if (entropy < 80) { label = 'Strong'; color = '#22c55e'; }
+      else { label = 'Very Strong'; color = '#10b981'; }
+      strengthEl.textContent = label + ' (~' + Math.round(entropy) + ' bits)';
+      strengthEl.style.color = color;
+    }
+
+    root.querySelector('#pw-generate').addEventListener('click', generate);
+    root.querySelector('#pw-copy').addEventListener('click', () => {
+      if (output.value) {
+        navigator.clipboard.writeText(output.value).then(() => {
+          strengthEl.textContent = 'Copied!';
+          setTimeout(generate, 1000);
+        }).catch(() => { strengthEl.textContent = 'Copy failed'; });
+      }
+    });
+    generate();
+  }
+
+  // N5. BMI Calculator
+  function appBMICalculator(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Unit system</label>
+        <select id="bmi-unit">
+          <option value="metric">Metric (kg, cm)</option>
+          <option value="imperial">Imperial (lb, inches)</option>
+        </select>
+      </div>
+      <div class="flex" style="margin-bottom:6px;">
+        <div style="flex:1;">
+          <label class="small-text">Weight</label>
+          <input type="number" id="bmi-weight" value="70" step="0.1">
+        </div>
+        <div style="flex:1;">
+          <label class="small-text">Height</label>
+          <input type="number" id="bmi-height" value="175" step="0.1">
+        </div>
+      </div>
+      <button class="btn primary" id="bmi-calc">Calculate BMI</button>
+      <div class="bmi-display" id="bmi-result">
+        <div class="small-text">Click Calculate to see your BMI</div>
+      </div>
+    `;
+    const unitSel = root.querySelector('#bmi-unit');
+    const weightInput = root.querySelector('#bmi-weight');
+    const heightInput = root.querySelector('#bmi-height');
+    const resultDiv = root.querySelector('#bmi-result');
+
+    function calculate() {
+      const weight = parseFloat(weightInput.value);
+      const height = parseFloat(heightInput.value);
+      if (!weight || !height || weight <= 0 || height <= 0) {
+        resultDiv.innerHTML = '<div class="small-text">Please enter valid values.</div>';
+        return;
+      }
+      let bmi;
+      if (unitSel.value === 'metric') {
+        bmi = weight / Math.pow(height / 100, 2);
+      } else {
+        bmi = (weight / Math.pow(height, 2)) * 703;
+      }
+      bmi = Math.round(bmi * 10) / 10;
+      let category, color;
+      if (bmi < 18.5) { category = 'Underweight'; color = '#60a5fa'; }
+      else if (bmi < 25) { category = 'Normal weight'; color = '#22c55e'; }
+      else if (bmi < 30) { category = 'Overweight'; color = '#eab308'; }
+      else { category = 'Obese'; color = '#ef4444'; }
+      resultDiv.innerHTML = `
+        <div style="font-size:36px; font-weight:bold; color:${color};">${bmi}</div>
+        <div class="small-text" style="color:${color};">${category}</div>
+        <div class="small-text" style="margin-top:4px;">
+          Healthy range: ${unitSel.value === 'metric' ? (18.5 * Math.pow(height/100,2)).toFixed(1) + ' – ' + (25 * Math.pow(height/100,2)).toFixed(1) + ' kg' : (18.5 * Math.pow(height,2) / 703).toFixed(1) + ' – ' + (25 * Math.pow(height,2) / 703).toFixed(1) + ' lb'}
+        </div>
+      `;
+    }
+
+    unitSel.addEventListener('change', () => {
+      if (unitSel.value === 'metric') {
+        weightInput.value = 70;
+        heightInput.value = 175;
+      } else {
+        weightInput.value = 154;
+        heightInput.value = 69;
+      }
+    });
+    root.querySelector('#bmi-calc').addEventListener('click', calculate);
+  }
+
+  // N6. Tip Calculator
+  function appTipCalculator(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Bill amount ($)</label>
+        <input type="number" id="tip-bill" value="50" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label>Tip percentage: <span id="tip-pct-label">15%</span></label>
+        <input type="range" id="tip-pct" min="0" max="100" value="15">
+      </div>
+      <div class="field">
+        <label>Split between (people)</label>
+        <input type="number" id="tip-split" value="1" min="1" max="50">
+      </div>
+      <div class="tip-summary" id="tip-summary">
+        <div class="small-text">Enter bill and adjust tip.</div>
+      </div>
+    `;
+    const billInput = root.querySelector('#tip-bill');
+    const pctSlider = root.querySelector('#tip-pct');
+    const pctLabel = root.querySelector('#tip-pct-label');
+    const splitInput = root.querySelector('#tip-split');
+    const summary = root.querySelector('#tip-summary');
+
+    function calculate() {
+      const bill = parseFloat(billInput.value) || 0;
+      const pct = parseInt(pctSlider.value, 10);
+      const split = Math.max(1, parseInt(splitInput.value, 10) || 1);
+      const tip = bill * pct / 100;
+      const total = bill + tip;
+      const perPerson = total / split;
+      summary.innerHTML = `
+        <div>Tip amount: <strong>$${tip.toFixed(2)}</strong></div>
+        <div>Total bill: <strong>$${total.toFixed(2)}</strong></div>
+        <div>Per person (${split}): <strong>$${perPerson.toFixed(2)}</strong></div>
+      `;
+    }
+    pctSlider.addEventListener('input', () => { pctLabel.textContent = pctSlider.value + '%'; calculate(); });
+    billInput.addEventListener('input', calculate);
+    splitInput.addEventListener('input', calculate);
+    calculate();
+  }
+
+  // N7. Age Calculator
+  function appAgeCalculator(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Date of birth</label>
+        <input type="date" id="age-dob">
+      </div>
+      <div class="field">
+        <label>Calculate at date (default: today)</label>
+        <input type="date" id="age-at">
+      </div>
+      <button class="btn primary" id="age-calc">Calculate</button>
+      <div id="age-result" style="margin-top:8px;"></div>
+    `;
+    const dobInput = root.querySelector('#age-dob');
+    const atInput = root.querySelector('#age-at');
+
+    root.querySelector('#age-calc').addEventListener('click', () => {
+      const dob = new Date(dobInput.value);
+      const target = new Date(atInput.value || Date.now());
+      if (isNaN(dob.getTime())) {
+        root.querySelector('#age-result').innerHTML = '<div class="small-text">Please enter your date of birth.</div>';
+        return;
+      }
+      if (dob > target) {
+        root.querySelector('#age-result').innerHTML = '<div class="small-text">Birth date must be before target date.</div>';
+        return;
+      }
+      let years = target.getFullYear() - dob.getFullYear();
+      let months = target.getMonth() - dob.getMonth();
+      let days = target.getDate() - dob.getDate();
+      if (days < 0) {
+        months--;
+        days += new Date(target.getFullYear(), target.getMonth(), 0).getDate();
+      }
+      if (months < 0) { years--; months += 12; }
+
+      const totalDays = Math.floor((target - dob) / (1000 * 60 * 60 * 24));
+      const totalHours = totalDays * 24;
+      const totalWeeks = Math.floor(totalDays / 7);
+
+      root.querySelector('#age-result').innerHTML = `
+        <div style="font-size:24px; font-weight:bold;">${years} years, ${months} months, ${days} days</div>
+        <div class="small-text" style="margin-top:6px;">Total: ${totalDays.toLocaleString()} days</div>
+        <div class="small-text">${totalWeeks.toLocaleString()} weeks</div>
+        <div class="small-text">${totalHours.toLocaleString()} hours</div>
+        <div class="small-text" style="margin-top:4px;">
+          Next birthday in ${365 - (totalDays % 365)} days (approx.)
+        </div>
+      `;
+    });
+  }
+
+  // N8. Quiz Game (General Knowledge)
+  function appQuiz(root) {
+    const questions = [
+      { q: "What is the capital of France?", o: ["Berlin","Paris","Madrid","Rome"], a: 1 },
+      { q: "Which planet is known as the Red Planet?", o: ["Venus","Mars","Jupiter","Saturn"], a: 1 },
+      { q: "Who wrote 'Romeo and Juliet'?", o: ["Charles Dickens","Shakespeare","Jane Austen","Mark Twain"], a: 1 },
+      { q: "What is the largest ocean on Earth?", o: ["Atlantic","Indian","Arctic","Pacific"], a: 3 },
+      { q: "How many continents are there?", o: ["5","6","7","8"], a: 2 },
+      { q: "What is the chemical symbol for gold?", o: ["Go","Au","Gd","Ag"], a: 1 },
+      { q: "In which year did WWII end?", o: ["1943","1944","1945","1946"], a: 2 },
+      { q: "What is the tallest mountain in the world?", o: ["K2","Everest","Kangchenjunga","Makalu"], a: 1 },
+      { q: "Which language has the most native speakers?", o: ["English","Hindi","Mandarin","Spanish"], a: 2 },
+      { q: "What is the smallest prime number?", o: ["0","1","2","3"], a: 2 }
+    ];
+    let currentQ = 0;
+    let score = 0;
+    let answered = false;
+
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Question <span id="qz-num">1</span>/${questions.length}</span>
+        <span class="small-text">Score: <span id="qz-score">0</span></span>
+      </div>
+      <div id="qz-question" style="margin-top:8px; font-size:14px; font-weight:bold;"></div>
+      <div id="qz-options" style="margin-top:6px;"></div>
+      <div id="qz-feedback" style="margin-top:6px;"></div>
+      <div class="flex" style="margin-top:6px;">
+        <button class="btn primary" id="qz-next" style="display:none;">Next →</button>
+        <button class="btn" id="qz-restart" style="display:none;">Restart Quiz</button>
+      </div>
+    `;
+
+    const qNum = root.querySelector('#qz-num');
+    const qScore = root.querySelector('#qz-score');
+    const qEl = root.querySelector('#qz-question');
+    const optEl = root.querySelector('#qz-options');
+    const feedbackEl = root.querySelector('#qz-feedback');
+    const nextBtn = root.querySelector('#qz-next');
+    const restartBtn = root.querySelector('#qz-restart');
+
+    function showQuestion() {
+      if (currentQ >= questions.length) {
+        qEl.textContent = `Quiz complete! Final score: ${score}/${questions.length}`;
+        optEl.innerHTML = '';
+        nextBtn.style.display = 'none';
+        restartBtn.style.display = 'inline-block';
+        feedbackEl.innerHTML = `<div class="small-text">${score >= questions.length * 0.7 ? 'Excellent!' : score >= questions.length * 0.5 ? 'Good effort!' : 'Keep practicing!'}</div>`;
+        return;
+      }
+      answered = false;
+      const item = questions[currentQ];
+      qNum.textContent = currentQ + 1;
+      qEl.textContent = item.q;
+      optEl.innerHTML = '';
+      feedbackEl.textContent = '';
+      nextBtn.style.display = 'none';
+      item.o.forEach((opt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'quiz-option small-text';
+        div.textContent = String.fromCharCode(65 + idx) + '. ' + opt;
+        div.addEventListener('click', () => {
+          if (answered) return;
+          answered = true;
+          if (idx === item.a) {
+            div.classList.add('correct');
+            score++;
+            qScore.textContent = score;
+            feedbackEl.textContent = '✓ Correct!';
+            feedbackEl.style.color = '#22c55e';
+          } else {
+            div.classList.add('wrong');
+            optEl.children[item.a].classList.add('correct');
+            feedbackEl.textContent = '✗ Answer: ' + item.o[item.a];
+            feedbackEl.style.color = '#ef4444';
+          }
+          nextBtn.style.display = 'inline-block';
+        });
+        optEl.appendChild(div);
+      });
+    }
+
+    nextBtn.addEventListener('click', () => {
+      currentQ++;
+      showQuestion();
+    });
+    restartBtn.addEventListener('click', () => {
+      currentQ = 0;
+      score = 0;
+      qScore.textContent = 0;
+      restartBtn.style.display = 'none';
+      showQuestion();
+    });
+
+    showQuestion();
+  }
+
+  // N9. Memory Card Game
+  function appMemoryGame(root) {
+    const emojis = ['🍎','🍌','🍇','🍒','🥝','🍑','🫐','🍍'];
+    let cards = [];
+    let flipped = [];
+    let matched = 0;
+    let moves = 0;
+    let lock = false;
+
+    function shuffle() {
+      cards = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+    }
+
+    root.innerHTML = `
+      <div class="flex-between">
+        <span class="small-text">Moves: <span id="mem-moves">0</span></span>
+        <span class="small-text">Matched: <span id="mem-matched">0</span>/8</span>
+      </div>
+      <div class="memory-grid" id="mem-grid"></div>
+      <button class="btn primary" id="mem-restart" style="margin-top:6px;">Restart</button>
+      <div id="mem-win" style="margin-top:6px;"></div>
+    `;
+    const grid = root.querySelector('#mem-grid');
+    const movesEl = root.querySelector('#mem-moves');
+    const matchedEl = root.querySelector('#mem-matched');
+    const winEl = root.querySelector('#mem-win');
+
+    function buildGrid() {
+      grid.innerHTML = '';
+      cards.forEach((emoji, idx) => {
+        const card = document.createElement('div');
+        card.className = 'memory-card';
+        card.dataset.idx = idx;
+        card.dataset.emoji = emoji;
+        card.textContent = '?';
+        card.addEventListener('click', () => flipCard(card));
+        grid.appendChild(card);
+      });
+    }
+
+    function flipCard(card) {
+      if (lock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+      card.classList.add('flipped');
+      card.textContent = card.dataset.emoji;
+      flipped.push(card);
+      if (flipped.length === 2) {
+        moves++;
+        movesEl.textContent = moves;
+        lock = true;
+        if (flipped[0].dataset.emoji === flipped[1].dataset.emoji) {
+          flipped[0].classList.add('matched');
+          flipped[1].classList.add('matched');
+          matched++;
+          matchedEl.textContent = matched;
+          flipped = [];
+          lock = false;
+          if (matched === 8) {
+            winEl.innerHTML = `<div style="color:#22c55e; font-weight:bold;">🎉 You won in ${moves} moves!</div>`;
+          }
+        } else {
+          setTimeout(() => {
+            flipped[0].classList.remove('flipped');
+            flipped[0].textContent = '?';
+            flipped[1].classList.remove('flipped');
+            flipped[1].textContent = '?';
+            flipped = [];
+            lock = false;
+          }, 800);
+        }
+      }
+    }
+
+    root.querySelector('#mem-restart').addEventListener('click', () => {
+      matched = 0; moves = 0; flipped = []; lock = false;
+      movesEl.textContent = 0; matchedEl.textContent = 0; winEl.innerHTML = '';
+      shuffle(); buildGrid();
+    });
+
+    shuffle();
+    buildGrid();
+  }
+
+  // N10. Base / Number System Converter
+  function appHexBinConverter(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Enter a number (select input base first)</label>
+        <select id="hb-base" style="margin-bottom:4px;">
+          <option value="10">Decimal (base 10)</option>
+          <option value="2">Binary (base 2)</option>
+          <option value="8">Octal (base 8)</option>
+          <option value="16">Hexadecimal (base 16)</option>
+        </select>
+        <input type="text" id="hb-input" placeholder="Enter number" value="255">
+      </div>
+      <div class="converter-group">
+        <div>Binary (2): <span id="hb-bin" style="float:right; font-family:monospace;"></span></div>
+      </div>
+      <div class="converter-group">
+        <div>Octal (8): <span id="hb-oct" style="float:right; font-family:monospace;"></span></div>
+      </div>
+      <div class="converter-group">
+        <div>Decimal (10): <span id="hb-dec" style="float:right; font-family:monospace;"></span></div>
+      </div>
+      <div class="converter-group">
+        <div>Hexadecimal (16): <span id="hb-hex" style="float:right; font-family:monospace;"></span></div>
+      </div>
+      <div class="small-text" id="hb-error" style="margin-top:4px; color:#ef4444;"></div>
+    `;
+    const baseSel = root.querySelector('#hb-base');
+    const input = root.querySelector('#hb-input');
+    const errorEl = root.querySelector('#hb-error');
+
+    function convert() {
+      errorEl.textContent = '';
+      const base = parseInt(baseSel.value, 10);
+      const raw = input.value.trim();
+      if (!raw) {
+        ['bin','oct','dec','hex'].forEach(id => root.querySelector('#hb-' + id).textContent = '');
+        return;
+      }
+      const num = parseInt(raw, base);
+      if (isNaN(num)) {
+        errorEl.textContent = 'Invalid number for base ' + base;
+        ['bin','oct','dec','hex'].forEach(id => root.querySelector('#hb-' + id).textContent = '—');
+        return;
+      }
+      root.querySelector('#hb-bin').textContent = num.toString(2);
+      root.querySelector('#hb-oct').textContent = num.toString(8);
+      root.querySelector('#hb-dec').textContent = num.toString(10);
+      root.querySelector('#hb-hex').textContent = num.toString(16).toUpperCase();
+    }
+    baseSel.addEventListener('change', convert);
+    input.addEventListener('input', convert);
+    convert();
+  }
+
+  // N11. Lorem Ipsum Generator
+  function appLoremIpsum(root) {
+    const words = ['lorem','ipsum','dolor','sit','amet','consectetur','adipiscing','elit','sed','do','eiusmod','tempor','incididunt','ut','labore','et','dolore','magna','aliqua','enim','ad','minim','veniam','quis','nostrud','exercitation','ullamco','laboris','nisi','aliquip','ex','ea','commodo','consequat','duis','aute','irure','in','reprehenderit','voluptate','velit','esse','cillum','fugiat','nulla','pariatur','excepteur','sint','occaecat','cupidatat','non','proident','sunt','culpa','qui','officia','deserunt','mollit','anim','id','est','laborum'];
+
+    root.innerHTML = `
+      <div class="flex" style="margin-bottom:6px;">
+        <div style="flex:1;">
+          <label class="small-text">Paragraphs</label>
+          <input type="number" id="li-paras" value="3" min="1" max="20" style="width:100%;">
+        </div>
+        <div style="flex:1;">
+          <label class="small-text">Words per paragraph</label>
+          <input type="number" id="li-words" value="50" min="10" max="200" style="width:100%;">
+        </div>
+      </div>
+      <button class="btn primary" id="li-gen">Generate</button>
+      <button class="btn" id="li-copy">Copy</button>
+      <div id="li-output" style="margin-top:8px; max-height:200px; overflow:auto; padding:6px; border-radius:8px; border:1px solid rgba(148,163,184,0.6); background:rgba(15,23,42,0.8); font-size:12px;"></div>
+    `;
+    const output = root.querySelector('#li-output');
+
+    function generateWord() { return words[Math.floor(Math.random() * words.length)]; }
+
+    function generateSentence() {
+      const length = 8 + Math.floor(Math.random() * 12);
+      let sentence = '';
+      for (let i = 0; i < length; i++) {
+        let word = generateWord();
+        if (i === 0) word = word.charAt(0).toUpperCase() + word.slice(1);
+        sentence += word + (i < length - 1 ? ' ' : '');
+      }
+      if (Math.random() < 0.3) sentence += ',';
+      return sentence + (Math.random() < 0.2 ? sentence : '') + '.';
+    }
+
+    function generateParagraph(wordCount) {
+      let para = '';
+      let count = 0;
+      while (count < wordCount) {
+        const sentence = generateSentence();
+        const sw = sentence.split(' ').length;
+        para += sentence + ' ';
+        count += sw;
+      }
+      return para.trim();
+    }
+
+    function generate() {
+      const paras = Math.max(1, parseInt(root.querySelector('#li-paras').value, 10) || 3);
+      const wordsPerPara = Math.max(10, parseInt(root.querySelector('#li-words').value, 10) || 50);
+      let result = '';
+      for (let i = 0; i < paras; i++) {
+        result += '<p style="margin-bottom:8px;">' + generateParagraph(wordsPerPara) + '</p>';
+      }
+      output.innerHTML = result;
+    }
+
+    root.querySelector('#li-gen').addEventListener('click', generate);
+    root.querySelector('#li-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(output.innerText).then(() => {
+        const btn = root.querySelector('#li-copy');
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 1200);
+      });
+    });
+    generate();
+  }
+
+  // N12. Case Switcher
+  function appCaseSwitcher(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Input text</label>
+        <textarea id="cs-input" rows="5" placeholder="Type or paste text here...">Hello World From The Simulator</textarea>
+      </div>
+      <div class="flex" style="flex-wrap:wrap; margin-bottom:6px;">
+        <button class="btn" data-case="upper">UPPERCASE</button>
+        <button class="btn" data-case="lower">lowercase</button>
+        <button class="btn" data-case="title">Title Case</button>
+        <button class="btn" data-case="camel">camelCase</button>
+        <button class="btn" data-case="pascal">PascalCase</button>
+        <button class="btn" data-case="snake">snake_case</button>
+        <button class="btn" data-case="kebab">kebab-case</button>
+        <button class="btn" data-case="alt">aLtErNaTiNg</button>
+        <button class="btn" data-case="reverse">esreveR</button>
+      </div>
+      <div class="field">
+        <label>Output</label>
+        <textarea id="cs-output" rows="5" readonly style="opacity:0.85;"></textarea>
+      </div>
+      <button class="btn" id="cs-copy">Copy Output</button>
+    `;
+    const input = root.querySelector('#cs-input');
+    const output = root.querySelector('#cs-output');
+
+    root.querySelectorAll('[data-case]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = input.value;
+        const type = btn.dataset.case;
+        let result = '';
+        switch (type) {
+          case 'upper': result = text.toUpperCase(); break;
+          case 'lower': result = text.toLowerCase(); break;
+          case 'title': result = text.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()); break;
+          case 'camel':
+            result = text.replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+                        .replace(/^[A-Z]/, c => c.toLowerCase());
+            break;
+          case 'pascal':
+            result = text.replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase())
+                        .replace(/^./, c => c.toUpperCase());
+            break;
+          case 'snake': result = text.trim().toLowerCase().replace(/\s+/g, '_'); break;
+          case 'kebab': result = text.trim().toLowerCase().replace(/\s+/g, '-'); break;
+          case 'alt':
+            result = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
+            break;
+          case 'reverse': result = text.split('').reverse().join(''); break;
+        }
+        output.value = result;
+      });
+    });
+
+    root.querySelector('#cs-copy').addEventListener('click', () => {
+      if (output.value) {
+        navigator.clipboard.writeText(output.value).then(() => {
+          const btn = root.querySelector('#cs-copy');
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy Output', 1200);
+        });
+      }
+    });
+  }
+
+  // N13. Stopwatch Pro (with laps)
+  function appStopwatchPro(root, win) {
+    root.innerHTML = `
+      <div style="font-size:32px; font-family:monospace; text-align:center;" id="sp-time">00:00.00</div>
+      <div class="flex" style="justify-content:center; margin-top:8px;">
+        <button class="btn primary" id="sp-start">Start</button>
+        <button class="btn" id="sp-lap" disabled>Lap</button>
+        <button class="btn" id="sp-stop">Stop</button>
+        <button class="btn" id="sp-reset">Reset</button>
+      </div>
+      <div id="sp-laps" style="margin-top:8px; max-height:140px; overflow:auto;"></div>
+    `;
+    const display = root.querySelector('#sp-time');
+    const lapsEl = root.querySelector('#sp-laps');
+    const startBtn = root.querySelector('#sp-start');
+    const lapBtn = root.querySelector('#sp-lap');
+    let startTime = null;
+    let elapsed = 0;
+    let raf = null;
+    let laps = [];
+    let lastLapTime = 0;
+
+    function formatTime(ms) {
+      const totalSec = ms / 1000;
+      const m = Math.floor(totalSec / 60);
+      const s = Math.floor(totalSec % 60);
+      const cs = Math.floor((ms % 1000) / 10);
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(cs).padStart(2, '0');
+    }
+
+    function loop() {
+      const now = performance.now();
+      const total = elapsed + (startTime ? now - startTime : 0);
+      display.textContent = formatTime(total);
+      if (startTime) raf = requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (startTime) return;
+      startTime = performance.now();
+      raf = requestAnimationFrame(loop);
+      startBtn.textContent = 'Running';
+      startBtn.disabled = true;
+      lapBtn.disabled = false;
+    });
+
+    root.querySelector('#sp-stop').addEventListener('click', () => {
+      if (!startTime) return;
+      elapsed += performance.now() - startTime;
+      startTime = null;
+      if (raf) cancelAnimationFrame(raf);
+      startBtn.textContent = 'Start';
+      startBtn.disabled = false;
+      lapBtn.disabled = true;
+    });
+
+    lapBtn.addEventListener('click', () => {
+      if (!startTime) return;
+      const now = performance.now();
+      const total = elapsed + (now - startTime);
+      const lapDiff = total - lastLapTime;
+      lastLapTime = total;
+      laps.push({ lap: formatTime(lapDiff), total: formatTime(total) });
+      renderLaps();
+    });
+
+    root.querySelector('#sp-reset').addEventListener('click', () => {
+      if (raf) cancelAnimationFrame(raf);
+      startTime = null; elapsed = 0; laps = []; lastLapTime = 0;
+      display.textContent = '00:00.00';
+      startBtn.textContent = 'Start'; startBtn.disabled = false;
+      lapBtn.disabled = true;
+      lapsEl.innerHTML = '';
+    });
+
+    function renderLaps() {
+      lapsEl.innerHTML = laps.map((lap, i) =>
+        `<div class="small-text" style="padding:2px 4px; border-bottom:1px solid rgba(148,163,184,0.3);">
+          Lap ${i + 1}: <span style="float:right;">${lap.lap} / ${lap.total}</span>
+        </div>`
+      ).join('');
+    }
+
+    win._cleanup = () => raf && cancelAnimationFrame(raf);
+  }
+
+  // N14. Expense Splitter (Bill Split)
+  function appExpenseSplitter(root) {
+    root.innerHTML = `
+      <div class="field">
+        <label>Bill total ($)</label>
+        <input type="number" id="es-total" value="120.00" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label>Tax (%) — optional</label>
+        <input type="number" id="es-tax" value="0" min="0" max="100">
+      </div>
+      <div class="field">
+        <label>Tip (%) — optional</label>
+        <input type="number" id="es-tip" value="0" min="0" max="100">
+      </div>
+      <div id="es-people-section">
+        <label class="small-text">People</label>
+        <div id="es-people-list"></div>
+        <button class="btn" id="es-add-person">+ Add person</button>
+      </div>
+      <button class="btn primary" id="es-calculate" style="margin-top:6px;">Calculate Split</button>
+      <div id="es-result" style="margin-top:8px;"></div>
+    `;
+    const peopleList = root.querySelector('#es-people-list');
+    const addBtn = root.querySelector('#es-add-person');
+    let people = [{ name: 'Person 1', amount: '' }, { name: 'Person 2', amount: '' }];
+
+    function renderPeople() {
+      peopleList.innerHTML = '';
+      people.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'expense-row';
+        row.style.cssText = 'padding:4px; border-radius:6px; margin:2px 0; background:rgba(15,23,42,0.6); display:flex; gap:4px; align-items:center;';
+        row.innerHTML = `
+          <input type="text" placeholder="Name" value="${p.name}" style="flex:1; font-size:11px; padding:3px;" data-field="name" data-idx="${i}">
+          <input type="number" placeholder="Custom $" value="${p.amount}" style="width:60px; font-size:11px; padding:3px;" data-field="amount" data-idx="${i}">
+          <button class="btn" data-del="${i}" style="font-size:10px;">✕</button>
+        `;
+        peopleList.appendChild(row);
+      });
+    }
+
+    peopleList.addEventListener('input', e => {
+      const idx = parseInt(e.target.dataset.idx, 10);
+      const field = e.target.dataset.field;
+      if (field) people[idx][field] = e.target.value;
+    });
+
+    peopleList.addEventListener('click', e => {
+      const delIdx = e.target.dataset.del;
+      if (delIdx !== undefined && people.length > 1) {
+        people.splice(parseInt(delIdx, 10), 1);
+        renderPeople();
+      }
+    });
+
+    addBtn.addEventListener('click', () => {
+      people.push({ name: 'Person ' + (people.length + 1), amount: '' });
+      renderPeople();
+    });
+
+    root.querySelector('#es-calculate').addEventListener('click', () => {
+      const total = parseFloat(root.querySelector('#es-total').value) || 0;
+      const taxPct = parseFloat(root.querySelector('#es-tax').value) || 0;
+      const tipPct = parseFloat(root.querySelector('#es-tip').value) || 0;
+      const taxAmount = total * taxPct / 100;
+      const tipAmount = total * tipPct / 100;
+      const grandTotal = total + taxAmount + tipAmount;
+
+      // Check for custom amounts
+      const customs = people.map(p => parseFloat(p.amount) || 0);
+      const customSum = customs.reduce((a, b) => a + b, 0);
+      let html = `<div class="tip-summary">`;
+      html += `<div>Subtotal: $${total.toFixed(2)}</div>`;
+      if (taxPct) html += `<div>Tax (${taxPct}%): $${taxAmount.toFixed(2)}</div>`;
+      if (tipPct) html += `<div>Tip (${tipPct}%): $${tipAmount.toFixed(2)}</div>`;
+      html += `<div style="font-weight:bold; margin-top:4px;">Grand Total: $${grandTotal.toFixed(2)}</div>`;
+
+      if (customSum > 0) {
+        html += `<div style="margin-top:6px; border-top:1px solid rgba(148,163,184,0.4); padding-top:4px;">`;
+        html += `<div class="small-text">Custom amounts:</div>`;
+        let remaining = grandTotal;
+        people.forEach((p, i) => {
+          const amt = customs[i];
+          if (amt > 0) {
+            html += `<div>${p.name}: $${amt.toFixed(2)}</div>`;
+            remaining -= amt;
+          }
+        });
+        const noCustoms = people.filter((_, i) => customs[i] === 0);
+        if (noCustoms.length > 0) {
+          const perPerson = remaining / noCustoms.length;
+          noCustoms.forEach(p => {
+            html += `<div>${p.name}: $${perPerson.toFixed(2)} (equal split of remainder)</div>`;
+          });
+        }
+        html += `</div>`;
+      } else {
+        const perPerson = grandTotal / people.length;
+        html += `<div style="margin-top:4px;">Split ${people.length} ways: <strong>$${perPerson.toFixed(2)}/person</strong></div>`;
+      }
+      html += `</div>`;
+      root.querySelector('#es-result').innerHTML = html;
+    });
+
+    renderPeople();
+  }
+
+  // N15. Habit Tracker
+  function appHabitTracker(root, win) {
+    const habits = JSON.parse(localStorage.getItem('ultra_habits') || '[]');
+    const today = new Date().toISOString().slice(0, 10);
+
+    root.innerHTML = `
+      <div class="field">
+        <label>Add habit</label>
+        <div class="flex">
+          <input type="text" id="ht-input" placeholder="e.g. Drink water, Exercise...">
+          <button class="btn primary" id="ht-add">Add</button>
+        </div>
+      </div>
+      <div id="ht-list"></div>
+      <div class="small-text" style="margin-top:6px;">Click ✓ to mark today. Streaks track consecutive days.</div>
+    `;
+    const input = root.querySelector('#ht-input');
+    const list = root.querySelector('#ht-list');
+
+    function save() {
+      localStorage.setItem('ultra_habits', JSON.stringify(habits));
+    }
+
+    function computeStreak(habit) {
+      if (!habit.history || !habit.history.length) return 0;
+      const sorted = [...habit.history].sort().reverse();
+      const todayDate = new Date();
+      let streak = 0;
+      let checkDate = new Date(todayDate);
+      // If today not done, start from yesterday
+      if (!sorted.includes(today)) {
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+      while (true) {
+        const dateStr = checkDate.toISOString().slice(0, 10);
+        if (sorted.includes(dateStr)) {
+          streak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      return streak;
+    }
+
+    function render() {
+      list.innerHTML = '';
+      if (!habits.length) {
+        list.innerHTML = '<div class="small-text">No habits yet. Add one above!</div>';
+        return;
+      }
+      habits.forEach((h, idx) => {
+        const doneToday = h.history && h.history.includes(today);
+        const streak = computeStreak(h);
+        const div = document.createElement('div');
+        div.className = 'habit-item';
+        div.style.cssText = 'background:rgba(15,23,42,0.6); border:1px solid rgba(148,163,184,0.4);';
+        div.innerHTML = `
+          <button class="btn" data-toggle="${idx}" style="background:${doneToday ? 'rgba(34,197,94,0.3)' : 'rgba(15,23,42,0.8)'}; margin-right:6px;">${doneToday ? '✓' : '○'}</button>
+          <span style="flex:1;">${h.name}</span>
+          <span class="habit-streak small-text" style="color:${streak >= 7 ? '#22c55e' : streak >= 3 ? '#eab308' : 'var(--text-soft)'};">🔥 ${streak} days</span>
+          <button class="btn" data-del="${idx}" style="margin-left:6px; font-size:10px;">✕</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    list.addEventListener('click', e => {
+      const toggleIdx = e.target.dataset.toggle;
+      const delIdx = e.target.dataset.del;
+      if (toggleIdx !== undefined) {
+        const h = habits[parseInt(toggleIdx, 10)];
+        if (!h.history) h.history = [];
+        const pos = h.history.indexOf(today);
+        if (pos >= 0) {
+          h.history.splice(pos, 1);
+        } else {
+          h.history.push(today);
+        }
+        save();
+        render();
+      }
+      if (delIdx !== undefined) {
+        habits.splice(parseInt(delIdx, 10), 1);
+        save();
+        render();
+      }
+    });
+
+    root.querySelector('#ht-add').addEventListener('click', () => {
+      const name = input.value.trim();
+      if (!name) return;
+      habits.push({ name, history: [] });
+      input.value = '';
+      save();
+      render();
+    });
+
+    render();
+  }
+
+  // N16. JSON Formatter & Validator
+  function appJsonFormatter(root) {
+    root.innerHTML = `
+      <div class="flex-between" style="margin-bottom:6px;">
+        <span class="small-text">JSON Formatter & Validator</span>
+        <div class="flex">
+          <button class="btn" id="jf-format">Format</button>
+          <button class="btn" id="jf-minify">Minify</button>
+          <button class="btn" id="jf-validate">Validate</button>
+          <button class="btn" id="jf-copy">Copy</button>
+        </div>
+      </div>
+      <div class="flex">
+        <textarea id="jf-input" rows="10" style="flex:1;" placeholder='{"name":"test","value":123}'></textarea>
+        <pre id="jf-output" style="flex:1; margin-left:6px; padding:6px; border-radius:8px; border:1px solid rgba(148,163,184,0.6); background:rgba(15,23,42,0.8); overflow:auto; font-size:11px; white-space:pre-wrap;"></pre>
+      </div>
+      <div id="jf-status" class="small-text" style="margin-top:4px;"></div>
+    `;
+    const input = root.querySelector('#jf-input');
+    const output = root.querySelector('#jf-output');
+    const status = root.querySelector('#jf-status');
+
+    function setStatus(msg, ok) {
+      status.textContent = msg;
+      status.style.color = ok ? '#22c55e' : '#ef4444';
+    }
+
+    function parseJSON() {
+      try {
+        return JSON.parse(input.value);
+      } catch (e) {
+        setStatus('✗ ' + e.message, false);
+        return null;
+      }
+    }
+
+    root.querySelector('#jf-format').addEventListener('click', () => {
+      const obj = parseJSON();
+      if (obj !== null) {
+        output.textContent = JSON.stringify(obj, null, 2);
+        setStatus('✓ Valid JSON, formatted (2 spaces)', true);
+      }
+    });
+
+    root.querySelector('#jf-minify').addEventListener('click', () => {
+      const obj = parseJSON();
+      if (obj !== null) {
+        output.textContent = JSON.stringify(obj);
+        setStatus('✓ Valid JSON, minified', true);
+      }
+    });
+
+    root.querySelector('#jf-validate').addEventListener('click', () => {
+      const obj = parseJSON();
+      if (obj !== null) {
+        output.textContent = 'Valid JSON ✓';
+        setStatus('✓ Valid JSON!', true);
+      }
+    });
+
+    root.querySelector('#jf-copy').addEventListener('click', () => {
+      if (output.textContent) {
+        navigator.clipboard.writeText(output.textContent).then(() => {
+          setStatus('Copied to clipboard!', true);
+        }).catch(() => setStatus('Copy failed', false));
+      }
+    });
+  }
+
+  // =========================================================================
+  // ================== END OF NEW APPS ======================================
+  // =========================================================================
+
+  // Close start menu when clicking outside
+  document.addEventListener('click', e => {
+    if (e.target.closest('#start-menu') || e.target.closest('#start-button')) return;
+    toggleStartMenu(false);
+  });
+});
+</script>
+</body>
+</html>
